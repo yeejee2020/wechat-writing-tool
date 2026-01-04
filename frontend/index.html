@@ -1,84 +1,143 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>公众号写作助手</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-      background: #f6f7f9;
-      padding: 30px;
-    }
-    textarea {
-      width: 100%;
-      height: 140px;
-      padding: 10px;
-      font-size: 14px;
-    }
-    button {
-      margin-top: 10px;
-      margin-right: 10px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    pre {
-      background: #fff;
-      padding: 15px;
-      margin-top: 20px;
-      white-space: pre-wrap;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>公众号写作助手</title>
+<style>
+body {
+  background: #f6f7f9;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC";
+  padding: 30px;
+  max-width: 900px;
+  margin: auto;
+}
+
+h1 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.section {
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+textarea {
+  width: 100%;
+  height: 80px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e0e3e7;
+  color: #333;
+}
+
+.title-card {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.title-card.selected {
+  border-color: #1a73e8;
+  background: #eef4ff;
+}
+
+pre {
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.8;
+}
+</style>
 </head>
+
 <body>
 
-<h2>公众号写作助手</h2>
+<h1>公众号写作助手</h1>
 
-<textarea id="input" placeholder="请输入你的主题或想法"></textarea><br/>
+<div class="section">
+  <h3>STEP 1：输入主题（或直接用系统推荐）</h3>
+  <textarea id="topic" placeholder="例如：最近总觉得自己在原地打转"></textarea>
+  <br />
+  <button onclick="generateTitles()">生成标题</button>
+</div>
 
-<button onclick="generate('title')">生成标题</button>
-<button onclick="generate('paragraph')">生成段落</button>
-<button onclick="generate('article')">生成整篇</button>
+<div class="section">
+  <h3>STEP 2：选择一个标题</h3>
+  <div id="titles"></div>
+</div>
 
-<pre id="output">等待生成…</pre>
+<div class="section">
+  <h3>STEP 3：生成整篇文章</h3>
+  <button onclick="generateArticle()">生成文章</button>
+</div>
+
+<div class="section">
+  <h3>生成结果</h3>
+  <pre id="output">等待生成…</pre>
+</div>
 
 <script>
-  const WORKER_URL = "https://wechat-writing-worker.myljyjso.workers.dev";
+const WORKER_URL = "https://wechat-writing-worker.myljyjso.workers.dev";
 
-  function generate(type) {
-    const input = document.getElementById("input").value.trim();
-    const output = document.getElementById("output");
+let selectedTitle = "";
 
-    if (!input) {
-      output.textContent = "请输入内容";
-      return;
-    }
-
-    output.textContent = "生成中……";
-
-    fetch(WORKER_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        type: type,
-        userInput: input
-      })
-    })
-    .then(res => res.text())
-    .then(text => {
-      try {
-        const data = JSON.parse(text);
-        if (data.success) {
-          output.textContent = data.content;
-        } else {
-          output.textContent = "错误：" + data.error;
-        }
-      } catch (e) {
-        output.textContent = "返回非 JSON：\n" + text;
-      }
-    })
-    .catch(err => {
-      output.textContent = "请求失败：" + err.message;
+function generateTitles() {
+  const topic = document.getElementById("topic").value.trim();
+  fetch(WORKER_URL, {
+    method: "POST",
+    body: JSON.stringify({ type: "title", userInput: topic })
+  })
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("titles");
+    container.innerHTML = "";
+    data.content.split("\n").forEach(t => {
+      if (!t.trim()) return;
+      const div = document.createElement("div");
+      div.className = "title-card";
+      div.textContent = t;
+      div.onclick = () => {
+        document.querySelectorAll(".title-card").forEach(el => el.classList.remove("selected"));
+        div.classList.add("selected");
+        selectedTitle = t;
+      };
+      container.appendChild(div);
     });
+  });
+}
+
+function generateArticle() {
+  if (!selectedTitle) {
+    alert("请先选择一个标题");
+    return;
   }
+  document.getElementById("output").textContent = "生成中…";
+  fetch(WORKER_URL, {
+    method: "POST",
+    body: JSON.stringify({ type: "article", userInput: selectedTitle })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("output").textContent = data.content.article || data.content;
+  });
+}
 </script>
 
 </body>
