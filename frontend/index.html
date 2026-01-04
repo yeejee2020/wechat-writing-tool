@@ -1,143 +1,180 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<title>公众号写作助手</title>
-<style>
-body {
-  background: #f6f7f9;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC";
-  padding: 30px;
-  max-width: 900px;
-  margin: auto;
-}
-
-h1 {
-  font-size: 22px;
-  margin-bottom: 20px;
-}
-
-.section {
-  background: #fff;
-  padding: 20px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-}
-
-textarea {
-  width: 100%;
-  height: 80px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-button {
-  margin-top: 10px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  background: #1a73e8;
-  color: #fff;
-  cursor: pointer;
-}
-
-button.secondary {
-  background: #e0e3e7;
-  color: #333;
-}
-
-.title-card {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-.title-card.selected {
-  border-color: #1a73e8;
-  background: #eef4ff;
-}
-
-pre {
-  white-space: pre-wrap;
-  font-size: 14px;
-  line-height: 1.8;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>公众号写作助手</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f7f7f7;
+      padding: 30px;
+    }
+    .box {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+    textarea {
+      width: 100%;
+      height: 80px;
+      padding: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 12px;
+      padding: 10px 18px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .title-list {
+      margin-top: 24px;
+    }
+    .title-item {
+      border: 1px solid #ddd;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .title-item:hover {
+      background: #f2f2f2;
+    }
+    .output {
+      white-space: pre-wrap;
+      margin-top: 24px;
+      line-height: 1.8;
+      font-size: 15px;
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 6px;
+    }
+    .loading {
+      color: #999;
+      margin-top: 12px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>公众号写作助手</h1>
+<div class="box">
+  <h1>公众号写作助手</h1>
 
-<div class="section">
-  <h3>STEP 1：输入主题（或直接用系统推荐）</h3>
-  <textarea id="topic" placeholder="例如：最近总觉得自己在原地打转"></textarea>
+  <textarea id="topicInput" placeholder="输入一个主题或想法，例如：普通的日子到底有没有意义"></textarea>
   <br />
   <button onclick="generateTitles()">生成标题</button>
-</div>
 
-<div class="section">
-  <h3>STEP 2：选择一个标题</h3>
-  <div id="titles"></div>
-</div>
+  <div id="loading" class="loading"></div>
 
-<div class="section">
-  <h3>STEP 3：生成整篇文章</h3>
-  <button onclick="generateArticle()">生成文章</button>
-</div>
+  <div id="titleList" class="title-list"></div>
 
-<div class="section">
-  <h3>生成结果</h3>
-  <pre id="output">等待生成…</pre>
+  <div id="output" class="output"></div>
 </div>
 
 <script>
-const WORKER_URL = "https://wechat-writing-worker.myljyjso.workers.dev";
+  // 👉 改成你自己的 Worker 地址
+  const WORKER_URL = "https://wechat-writing-worker.myljyjso.workers.dev";
 
-let selectedTitle = "";
+  const loadingEl = document.getElementById("loading");
+  const titleListEl = document.getElementById("titleList");
+  const outputEl = document.getElementById("output");
 
-function generateTitles() {
-  const topic = document.getElementById("topic").value.trim();
-  fetch(WORKER_URL, {
-    method: "POST",
-    body: JSON.stringify({ type: "title", userInput: topic })
-  })
-  .then(res => res.json())
-  .then(data => {
-    const container = document.getElementById("titles");
-    container.innerHTML = "";
-    data.content.split("\n").forEach(t => {
-      if (!t.trim()) return;
-      const div = document.createElement("div");
-      div.className = "title-card";
-      div.textContent = t;
-      div.onclick = () => {
-        document.querySelectorAll(".title-card").forEach(el => el.classList.remove("selected"));
-        div.classList.add("selected");
-        selectedTitle = t;
-      };
-      container.appendChild(div);
-    });
-  });
-}
+  async function generateTitles() {
+    const topic = document.getElementById("topicInput").value.trim();
+    if (!topic) {
+      alert("请先输入主题");
+      return;
+    }
 
-function generateArticle() {
-  if (!selectedTitle) {
-    alert("请先选择一个标题");
-    return;
+    loadingEl.textContent = "正在生成标题...";
+    titleListEl.innerHTML = "";
+    outputEl.innerHTML = "";
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "title",
+          topic: topic
+        })
+      });
+
+      const data = await res.json();
+      loadingEl.textContent = "";
+
+      if (!data.success) {
+        alert("生成失败");
+        return;
+      }
+
+      renderTitles(data.content);
+    } catch (e) {
+      loadingEl.textContent = "";
+      alert("请求失败");
+    }
   }
-  document.getElementById("output").textContent = "生成中…";
-  fetch(WORKER_URL, {
-    method: "POST",
-    body: JSON.stringify({ type: "article", userInput: selectedTitle })
-  })
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("output").textContent = data.content.article || data.content;
-  });
-}
+
+  function renderTitles(text) {
+    const blocks = text.split(/\n\s*\n/);
+
+    blocks.forEach(block => {
+      if (!block.includes("标题：")) return;
+
+      const titleMatch = block.match(/标题：(.*)/);
+      const hookMatch = block.match(/钩子：(.*)/);
+
+      if (!titleMatch || !hookMatch) return;
+
+      const title = titleMatch[1].trim();
+      const hook = hookMatch[1].trim();
+
+      const div = document.createElement("div");
+      div.className = "title-item";
+      div.innerHTML = `
+        <strong>${title}</strong>
+        <div style="margin-top:6px;color:#555">${hook}</div>
+      `;
+      div.onclick = () => generateFull(title, hook);
+      titleListEl.appendChild(div);
+    });
+  }
+
+  async function generateFull(title, hook) {
+    loadingEl.textContent = "正在生成整篇文章...";
+    outputEl.innerHTML = "";
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "full",
+          selectedTitle: title,
+          selectedHook: hook
+        })
+      });
+
+      const data = await res.json();
+      loadingEl.textContent = "";
+
+      if (!data.success) {
+        alert("生成失败");
+        return;
+      }
+
+      outputEl.textContent = data.content;
+    } catch (e) {
+      loadingEl.textContent = "";
+      alert("请求失败");
+    }
+  }
 </script>
 
 </body>
