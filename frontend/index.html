@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>公众号情绪文写作工具</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>公众号情绪写作助手</h1>
+
+  <textarea
+    id="input"
+    placeholder="输入今天的主题 / 情绪 / 读者状态"
+  ></textarea>
+
+  <div>
+    <button onclick="generate('title')">生成标题</button>
+    <button onclick="generate('paragraph')">生成段落</button>
+    <button onclick="generate('full')">生成整篇</button>
+  </div>
+
+  <pre id="output"></pre>
+
+  <script src="app.js"></script>
+</body>
+</html>
