@@ -3,118 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <title>公众号写作助手</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
-        "Helvetica Neue", Helvetica, Arial, sans-serif;
-      background: #f7f7f7;
-      padding: 20px;
-      line-height: 1.6;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      background: #f6f7f9;
+      padding: 30px;
     }
-
-    h1 {
-      font-size: 20px;
-      margin-bottom: 10px;
-    }
-
     textarea {
       width: 100%;
-      height: 120px;
+      height: 140px;
       padding: 10px;
       font-size: 14px;
-      box-sizing: border-box;
     }
-
     button {
       margin-top: 10px;
-      margin-right: 8px;
-      padding: 8px 14px;
-      font-size: 14px;
+      margin-right: 10px;
+      padding: 8px 16px;
       cursor: pointer;
     }
-
     pre {
-      margin-top: 20px;
-      padding: 12px;
       background: #fff;
+      padding: 15px;
+      margin-top: 20px;
       white-space: pre-wrap;
-      word-break: break-word;
-      border: 1px solid #ddd;
-      min-height: 120px;
     }
   </style>
 </head>
 <body>
 
-  <h1>公众号写作助手</h1>
+<h2>公众号写作助手</h2>
 
-  <textarea id="input" placeholder="输入主题或一句话，比如：最近真的很累"></textarea>
+<textarea id="input" placeholder="请输入你的主题或想法"></textarea><br/>
 
-  <div>
-    <button onclick="generate('title')">生成标题</button>
-    <button onclick="generate('paragraph')">生成段落</button>
-    <button onclick="generate('full')">生成整篇</button>
-  </div>
+<button onclick="generate('title')">生成标题</button>
+<button onclick="generate('paragraph')">生成段落</button>
+<button onclick="generate('article')">生成整篇</button>
 
-  <pre id="output">等待生成…</pre>
+<pre id="output">等待生成…</pre>
 
-  <script>
-    // ===============================
-    // ⚠️ 这里换成你自己的 Worker URL
-    // ===============================
-    const WORKER_URL = "https://wechat-writing-worker.mylyijso.workers.dev";
+<script>
+  const WORKER_URL = "https://wechat-writing-worker.mylyijso.workers.dev";
 
-    async function generate(type) {
-      const inputEl = document.getElementById("input");
-      const outputEl = document.getElementById("output");
+  function generate(type) {
+    const input = document.getElementById("input").value.trim();
+    const output = document.getElementById("output");
 
-      const userInput = inputEl.value.trim();
-
-      if (!userInput) {
-        outputEl.innerText = "请先输入一点内容。";
-        return;
-      }
-
-      outputEl.innerText = "生成中……";
-
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            type: type,
-            userInput: userInput
-          })
-        });
-
-        // 👇 关键：先读 text，避免 JSON 出错卡死
-        const rawText = await res.text();
-
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          outputEl.innerText =
-            "返回内容不是 JSON：\n\n" + rawText;
-          return;
-        }
-
-        if (data.success) {
-          outputEl.innerText = data.content;
-        } else {
-          outputEl.innerText =
-            "生成失败：\n" + (data.error || "未知错误");
-        }
-
-      } catch (err) {
-        outputEl.innerText =
-          "请求失败：\n" + err.message;
-      }
+    if (!input) {
+      output.textContent = "请输入内容";
+      return;
     }
-  </script>
+
+    output.textContent = "生成中……";
+
+    fetch(WORKER_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type: type,
+        userInput: input
+      })
+    })
+    .then(res => res.text())
+    .then(text => {
+      try {
+        const data = JSON.parse(text);
+        if (data.success) {
+          output.textContent = data.content;
+        } else {
+          output.textContent = "错误：" + data.error;
+        }
+      } catch (e) {
+        output.textContent = "返回非 JSON：\n" + text;
+      }
+    })
+    .catch(err => {
+      output.textContent = "请求失败：" + err.message;
+    });
+  }
+</script>
 
 </body>
 </html>
