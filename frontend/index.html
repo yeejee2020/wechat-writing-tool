@@ -1,17 +1,55 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>一米阳光公众号情绪文写作工具</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>公众号写作助手</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+        "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: #f7f7f7;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 10px;
+      margin-right: 8px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    pre {
+      margin-top: 20px;
+      padding: 12px;
+      background: #fff;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid #ddd;
+      min-height: 120px;
+    }
+  </style>
 </head>
 <body>
-  <h1>公众号情绪写作助手</h1>
 
-  <textarea
-    id="input"
-    placeholder="输入今天的主题 / 情绪 / 读者状态"
-  ></textarea>
+  <h1>公众号写作助手</h1>
+
+  <textarea id="input" placeholder="输入主题或一句话，比如：最近真的很累"></textarea>
 
   <div>
     <button onclick="generate('title')">生成标题</button>
@@ -19,8 +57,64 @@
     <button onclick="generate('full')">生成整篇</button>
   </div>
 
-  <pre id="output"></pre>
+  <pre id="output">等待生成…</pre>
 
-  <script src="app.js"></script>
+  <script>
+    // ===============================
+    // ⚠️ 这里换成你自己的 Worker URL
+    // ===============================
+    const WORKER_URL = "https://wechat-writing-worker.mylyijso.workers.dev";
+
+    async function generate(type) {
+      const inputEl = document.getElementById("input");
+      const outputEl = document.getElementById("output");
+
+      const userInput = inputEl.value.trim();
+
+      if (!userInput) {
+        outputEl.innerText = "请先输入一点内容。";
+        return;
+      }
+
+      outputEl.innerText = "生成中……";
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: type,
+            userInput: userInput
+          })
+        });
+
+        // 👇 关键：先读 text，避免 JSON 出错卡死
+        const rawText = await res.text();
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          outputEl.innerText =
+            "返回内容不是 JSON：\n\n" + rawText;
+          return;
+        }
+
+        if (data.success) {
+          outputEl.innerText = data.content;
+        } else {
+          outputEl.innerText =
+            "生成失败：\n" + (data.error || "未知错误");
+        }
+
+      } catch (err) {
+        outputEl.innerText =
+          "请求失败：\n" + err.message;
+      }
+    }
+  </script>
+
 </body>
 </html>
