@@ -1,4 +1,4 @@
-const WORKER_URL = "wechat-writing-worker.myljyjso.workers.dev";
+const WORKER_URL = "https://wechat-writing-worker.myljyjso.workers.dev";
 
 async function generate(type) {
   const input = document.getElementById("input").value;
